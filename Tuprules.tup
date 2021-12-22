@@ -1,0 +1,52 @@
+# Erlang needs HOME to be set
+export HOME
+
+# Variables from tup.config
+
+ERL                       = @(ERL)
+ERLC                      = @(ERLC)
+ERTS_INCLUDE_DIR          = @(ERTS_INCLUDE_DIR)
+ERL_INTERFACE_INCLUDE_DIR = @(ERL_INTERFACE_INCLUDE_DIR)
+DEPS_DIR                  = @(DEPS_DIR)
+C_SRC_DIR                 = @(C_SRC_DIR)
+
+# Erlang
+
+!erlc = |> ^ erlc %f^ $(ERLC) $(ERLC_FLAGS) %f |> %B.beam
+!serlc = |> ^ erlc %f^ $(ERLC) $(ERLC_FLAGS) -o ../ebin %f |> ../ebin/%B.beam
+
+# C
+
+CFLAGS += -Wall -g
+
+NIF_INCLUDE = -I$(ERTS_INCLUDE_DIR) -I$(ERL_INTERFACE_INCLUDE_DIR)
+
+ifeq (@(TUP_PLATFORM),macosx)
+CC            = cc
+LD            = $(CC)
+NIF_LDFLAGS   = -bundle -undefined dynamic_lookup
+SHARED_CFLAGS = -fPIC -fno-common
+endif
+
+ifeq (@(TUP_PLATFORM),linux)
+CC            = gcc
+LD            = $(CC)
+NIF_LDFLAGS   += -shared
+SHARED_CFLAGS = -fpic
+endif
+
+ifeq (@(TUP_PLATFORM),freebsd)
+CC            = cc
+LD            = $(CC)
+NIF_LDFLAGS   = -shared
+SHARED_CFLAGS = -fpic
+endif
+
+
+!cc        = |> ^ cc %f ^ $(CC) $(CFLAGS) -c %f |> %B.o
+!cc_shared = |> ^ cc %f ^ $(CC) $(CFLAGS) $(SHARED_CFLAGS) -c %f |> %B.o
+!cc_nif    = |> ^ cc %f ^ \
+           $(CC) $(CFLAGS) $(SHARED_CFLAGS) $(NIF_INCLUDE) -c %f |> %B.o
+
+!ld        = |> ^ %o ^ $(LD) %f -o %o |>
+!ld_nif    = |> ^ %o ^ $(LD) $(NIF_LDFLAGS) %f -o %o |>
